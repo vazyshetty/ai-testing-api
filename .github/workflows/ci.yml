@@ -9,54 +9,66 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
+      # Checkout repo
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # Setup Java for Maven
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
+      # Setup Node.js for MCP mock + scripts
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
+      # Install Node dependencies
       - name: Install dependencies
         run: npm ci
 
+      # Start MCP mock service
       - name: Start MCP mock
         run: |
           npx ts-node src/server.ts &
           sleep 2
           curl -s http://localhost:4000/health
 
+      # Generate Beer API tests from requirements
       - name: Generate tests
         env:
           MCP_ENDPOINT: http://localhost:4000
         run: npx ts-node src/jira-to-mcp.ts
 
-      - name: Run Maven tests
+      # Run Maven tests
+      - name: Run tests
         run: mvn clean test
 
-      - name: Generate HTML report
+      # Generate HTML report
+      - name: Generate site
         run: mvn site
 
+      # Upload Surefire reports
       - name: Upload Surefire reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: surefire-reports
           path: target/surefire-reports/
 
+      # Upload HTML site
       - name: Upload HTML site
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: maven-site
           path: target/site/
 
+      # Log defects to JIRA if failures occur
       - name: Log defects to JIRA
         if: failure() || always()
         env:
