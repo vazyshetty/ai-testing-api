@@ -79,7 +79,7 @@ jobs:
           path: target/site/
 
       - name: Notify Teams
-        run: npx ts-node scripts/notify-teams.js
+        run: npx ts-node scripts/notify-teams.mjs
         env:
             TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
 
