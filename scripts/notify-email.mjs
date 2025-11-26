@@ -1,12 +1,17 @@
-import nodemailer from "nodemailer";
+const nodemailer = require("nodemailer");
 
 async function sendEmail() {
     const transporter = nodemailer.createTransport({
-        service: "gmail", // or Outlook SMTP
+        host: "smtp.office365.com",   // Outlook SMTP host
+        port: 587,                    // TLS port
+        secure: false,                // STARTTLS, not SSL
         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
+            user: process.env.EMAIL_USER, // your Outlook email
+            pass: process.env.EMAIL_PASS, // your Outlook password or app password
         },
+        tls: {
+            ciphers: "SSLv3"
+        }
     });
 
     const mailOptions = {
@@ -26,8 +31,13 @@ async function sendEmail() {
         ],
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.messageId);
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Email sent:", info.messageId);
+    } catch (err) {
+        console.error("Email error:", err);
+        process.exit(1);
+    }
 }
 
-sendEmail().catch(console.error);
+sendEmail();
