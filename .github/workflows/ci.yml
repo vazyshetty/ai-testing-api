@@ -84,7 +84,7 @@ jobs:
             TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
 
       - name: Notify Email
-        run: npx ts-node scripts/notify-email.js
+        run: npx ts-node scripts/notify-email.mjs
         env:
             EMAIL_USER: ${{ secrets.EMAIL_USER }}
             EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
