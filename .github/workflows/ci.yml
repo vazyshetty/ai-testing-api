@@ -37,8 +37,10 @@ jobs:
       - name: Start MCP mock
         run: |
           npx ts-node src/server.ts &
+          SERVER_PID=$!
           sleep 2
-          curl -s http://localhost:4000/health
+          curl -s http://localhost:4000/health || (echo "❌ Health check failed" && kill $SERVER_PID && exit 1)
+          echo "✅ Beer API MCP mock running on http://localhost:4000"
 
       # Generate Beer API tests from requirements
       - name: Generate tests
@@ -49,6 +51,14 @@ jobs:
       # Run Maven tests
       - name: Run tests
         run: mvn clean test
+
+      # Stop MCP mock service
+      - name: Stop MCP mock
+        if: always()
+        run: |
+          kill $SERVER_PID || true
+          wait $SERVER_PID 2>/dev/null || true
+          echo "🛑 MCP mock stopped"
 
       # Generate HTML report
       - name: Generate site
