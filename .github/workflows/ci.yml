@@ -1,0 +1,67 @@
+name: Beer API CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start MCP mock
+        run: |
+          npx ts-node src/server.ts &
+          sleep 2
+          curl -s http://localhost:4000/health
+
+      - name: Generate tests
+        env:
+          MCP_ENDPOINT: http://localhost:4000
+        run: npx ts-node src/jira-to-mcp.ts
+
+      - name: Run Maven tests
+        run: mvn clean test
+
+      - name: Generate HTML report
+        run: mvn site
+
+      - name: Upload Surefire reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+
+      - name: Upload HTML site
+        uses: actions/upload-artifact@v3
+        with:
+          name: maven-site
+          path: target/site/
+
+      - name: Log defects to JIRA
+        if: failure() || always()
+        env:
+          JIRA_BASE: ${{ secrets.JIRA_BASE }}
+          JIRA_PROJECT_KEY: QA
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+          JIRA_TOKEN: ${{ secrets.JIRA_TOKEN }}
+        run: npx ts-node scripts/log-defects-to-jira.ts
